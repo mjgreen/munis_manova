@@ -1,0 +1,74 @@
+---
+title: "Untitled"
+output: html_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(report))
+```
+
+
+I've conducted a study with a mixed design investigating the influence of emotional intelligence (between-subjects factor) on valence and arousal ratings (dependent variables) of positive, negative and neutral images (within-subjects factor).  Since I have two dependent variables that may interrelated, I thought that a MANOVA would be the appropriate test. However, I'm struggling to find online resources on how to run a two-way MANOVA when you have a mixed design (between and within-subjects factors). Could you provide any support on how to conduct this on JASP or SPSS? Alternatively, if you think I should run separate ANOVAs instead, please let me know. 
+
+DVs valence_ratings; arousal_ratings
+IVs valence_type ( 3 within); emotional_intelligence (2 between)
+
+valence_ratings + arousal_ratings ~ valence_type + emotional_intelligence
+
+
+2 between
+3 within
+
+```{r}
+n_participants=6
+n_between_levels = 2
+n_within_levels = 3
+n_dv = 2
+
+participant_vector <- 
+  rep(
+    x     = 1:(n_participants * n_between_levels), 
+    each  = n_within_levels, 
+    times = 1)
+
+set.seed(1234)
+
+data_long <- tibble(
+  participant           = participant_vector,
+  emote       = rep(c("low", "high"), each=(n_participants*n_within_levels)),
+  image       = rep(c("neg", "neutral", "pos"), each=1, times=n_participants*n_between_levels),
+  rateVALENCE = rnorm(n=seq_along(participant)),
+  rateAROUSAL = rnorm(seq_along(participant)),
+)
+write_csv(x=data_long, file="data_long.csv")
+
+data_very_wide=data_long %>% 
+  pivot_wider(id_cols=c(participant, emote), names_from=image, values_from=c(rateVALENCE, rateAROUSAL))
+write_csv(x=data_very_wide, file="data_very_wide.csv")
+```
+
+```{r}
+data_long
+```
+
+```{r}
+mod1 <-
+  with(data_long, 
+       manova(
+         cbind(rateVALENCE, rateAROUSAL) ~ emote * image
+         )
+       )
+```
+
+```{r}
+anova(mod1)
+```
+
+```{r}
+report(mod1)
+```
+
+
